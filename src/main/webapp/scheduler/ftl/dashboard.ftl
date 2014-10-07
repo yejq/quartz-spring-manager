@@ -121,7 +121,7 @@
 					</div>
 					<div class="panel panel-success">
 				        <div class="panel-heading">
-				            <h3 class="panel-title">常用表达式</h3>
+				            <h3 class="panel-title">常用表达式，<small><a href="http://www.hahuachou.com/cron/index.htm" target="_blank">在线cron表达式生成器</a></small></h3>
 				        </div>
 				        <div class="panel-body">
 				        <pre>
