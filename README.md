@@ -62,4 +62,4 @@ How to use:
 
 then, visit [http://localhost/scheduler/](http://localhost/scheduler/) ：
 
-![](http://t.williamgates.net/thumb-7DD4_5433ABB0.jpg)
+![](http://t.williamgates.net/image-7DD4_5433ABB0.jpg)
