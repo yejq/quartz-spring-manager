@@ -1,0 +1,1 @@
+<#assign title="The Manager of Spring Quartz Xml Configuration File">

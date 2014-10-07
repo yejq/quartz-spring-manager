@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<!-- - Scheduler context for Quartz. - Note that Quartz Jobs are throwaway 
+	objects, in contrast to shared TimerTasks. -->
+<beans>
+	<!-- Quartz Scheduler, with pre-registered triggers -->
+	<bean id="scheduler"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
+		lazy-init="false">
+		<property name="triggers">
+			<list>
+				<!-- 邮件 -->
+				<ref local="informManufacturersSendOrderTrigger" />
+				<ref local="informCustomersPayBalanceTrigger" />
+				<ref local="informCustomersAcceptOrderTrigger" />
+				<!--系统 -->
+				<ref local="doRetryTrigger" />
+				<!--订单取消相关 -->
+				<ref local="autoCancelOrderByPayReasonTrigger" />
+				<ref local="autoAcceptOrderTrigger" />
+				<ref local="autoCloseRefundRightTrigger" />
+				<!-- 商城相关 -->
+				<ref local="sendShipment2KeJieTrigger" />
+				<ref local="actionCreateTrackTrigger" />
+				<ref local="updateOrderStatusToFeifeiTrigger" />
+				<!-- 淘宝接口-->
+				<ref local="sendOrderToTmallTrigger" />
+			</list>
+		</property>
+		<property name="globalJobListeners">
+			<list>
+				<ref local="jobListener" />
+			</list>
+		</property>
+		<!-- Don't automatically start (no good error control when startup), context 
+			util will start it instead. -->
+		<property name="autoStartup" value="false" />
+		<property name="startupDelay" value="30" />
+	</bean>
+	<!-- Listener ss -->
+	<bean id="jobListener" class="com.feifei.order.quartz.listener.JobListenerImpl">
+		<property name="name" value="JobListener" />
+	</bean>
+	<!-- Listener end -->
+
+	<bean id="informManufacturersSendOrderTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="通知需要发货的厂家" />
+		<property name="jobDetail" ref="informManufacturersSendOrderDetail" />
+		<property name="group" value="EDM[SELLER]" />
+		<property name="cronExpression">
+			<value>5 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="informManufacturersSendOrderDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderInformService" />
+		<property name="targetMethod" value="informManufacturersSendOrder" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="informCustomersPayBalanceTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="通知需要支付余款的客户" />
+		<property name="jobDetail" ref="informCustomersPayBalanceDetail" />
+		<property name="group" value="EDM[BUYER]" />
+		<property name="cronExpression">
+			<value>10 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="informCustomersPayBalanceDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderInformService" />
+		<property name="targetMethod" value="informCustomersPayBalance" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="informCustomersAcceptOrderTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="通知需要收货的客户" />
+		<property name="jobDetail" ref="informCustomersAcceptOrderDetail" />
+		<property name="group" value="EDM[BUYER]" />
+		<property name="cronExpression">
+			<value>15 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="informCustomersAcceptOrderDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderInformService" />
+		<property name="targetMethod" value="informCustomersAcceptOrder" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="doRetryTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="调度失败的任务重新处理" />
+		<property name="jobDetail" ref="doRetryDetail" />
+		<property name="group" value="SYSTEM" />
+		<property name="cronExpression">
+			<value>20 0/6 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="doRetryDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="schedulingRetryService" />
+		<property name="targetMethod" value="doRetry" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="autoCancelOrderByPayReasonTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="买家下单时，需要在一定时间内完成付款" />
+		<property name="jobDetail" ref="autoCancelOrderByPayReasonDetail" />
+		<property name="group" value="ORDER[CORE]" />
+		<property name="cronExpression">
+			<value>35 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="autoCancelOrderByPayReasonDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="autoCancelOrderByPayReason" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="autoAcceptOrderTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="厂家发货后，若买家不在指定时间内确认收货，将自动完成订单" />
+		<property name="jobDetail" ref="autoAcceptOrderDetail" />
+		<property name="group" value="ORDER[CORE]" />
+		<property name="cronExpression">
+			<value>45 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="autoAcceptOrderDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="autoAcceptOrder" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="autoCloseRefundRightTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="买家收货后，将有一段买家保护时间，买家仍能在保护期内提起退款申请" />
+		<property name="jobDetail" ref="autoCloseRefundRightDetail" />
+		<property name="group" value="ORDER[CORE]" />
+		<property name="cronExpression">
+			<value>50 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="autoCloseRefundRightDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="autoCloseRefundRight" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="sendShipment2KeJieTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="订单定时推送到仓库" />
+		<property name="jobDetail" ref="sendShipment2KeJieDetail" />
+		<property name="group" value="SHIPMENT[CORE]" />
+		<property name="cronExpression">
+			<value>0 0/2 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="sendShipment2KeJieDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="sendShipment2KeJie" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="actionCreateTrackTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="运单号中转到飞飞商城" />
+		<property name="jobDetail" ref="actionCreateTrackDetail" />
+		<property name="group" value="ORDER[CORE]" />
+		<property name="cronExpression">
+			<value>10 0/5 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="actionCreateTrackDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="actionCreateTrack" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="updateOrderStatusToFeifeiTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="订单签收状态、取消中转到飞飞商城"/>
+		<property name="jobDetail" ref="updateOrderStatusToFeifeiDetail" />
+		<property name="group" value="ORDER[CORE]" />
+		<property name="cronExpression">
+			<value>15 0/30 * * * ?</value>
+		</property>
+	</bean>
+	<bean id="updateOrderStatusToFeifeiDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="updateOrderStatusToFeifei" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<bean id="sendOrderToTmallTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="description" value="运单号中转到天猫、淘宝商城"/>
+		<property name="jobDetail" ref="sendOrderToTmallDetail" />
+		<property name="group" value="TAOBAO[CORE]" />
+		<property name="cronExpression">
+			<value>20 0 0/6 * * ?</value>
+		</property>
+	</bean>
+	<bean id="sendOrderToTmallDetail" class="com.feifei.order.quartz.M2cMethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="orderScheduleService" />
+		<property name="targetMethod" value="sendOrderToTmall" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<!-- 
+		"0 0 12 * * ?" 每天中午12点触发 
+		"0 15 10 ? * *" 每天上午10:15触发 
+		"0 15 10 * * ?"  每天上午10:15触发 
+		"0 15 10 * * ? *" 每天上午10:15触发 
+		"0 15 10 * * ? 2005" 2005年的每天上午10:15触发 
+		"0 * 14 * * ?" 在每天下午2点到下午2:59期间的每1分钟触发 
+		"0 0/5 14 * * ?" 在每天下午2点到下午2:55期间的每5分钟触发 
+		"0 0/5 14,18 * * ?" 在每天下午2点到2:55期间和下午6点到6:55期间的每5分钟触发 
+		"0 0-5 14 * * ?" 在每天下午2点到下午2:05期间的每1分钟触发 
+		"0 10,44 14 ? 3 WED" 每年三月的星期三的下午2:10和2:44触发 
+		"0 15 10 ? * MON-FRI" 周一至周五的上午10:15触发 
+		"0 15 10 15 * ?" 每月15日上午10:15触发 
+		"0 15 10 L * ?" 每月最后一日的上午10:15触发 
+		"0 15 10 ? * 6L" 每月的最后一个星期五上午10:15触发 
+		"0 15 10 ? * 6L 2002-2005" 2002年至2005年的每月的最后一个星期五上午10:15触发 
+		"0 15 10 ? * 6#3" 每月的第三个星期五上午10:15触发 
+	-->
+</beans>

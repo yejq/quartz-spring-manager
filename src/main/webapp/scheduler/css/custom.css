@@ -1,0 +1,31 @@
+.panel-body .running{
+	color: green;
+	padding-right: 5px;
+}
+.panel-body .stoped{
+	color: red;
+	padding-right: 5px;
+}
+.page-header{
+	margin:0 0;
+}
+#errorMsgDiv{
+	/* display: none; */
+}
+.logo{
+	float: left;
+	margin-right: 10px;
+	margin-top: 20px;
+}
+div .fixed-top{
+	top: 0;
+	border-width: 0 0 1px;
+	border-radius: 0;
+	position: fixed;
+	right: 0;
+	left: 0;
+	z-index: 1030;
+	-webkit-transform: translate3d(0,0,0);
+	-o-transform: translate3d(0,0,0);
+	background-color: azure;
+}
