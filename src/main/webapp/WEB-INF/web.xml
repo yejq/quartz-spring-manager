@@ -14,9 +14,6 @@
 		<param-value>true</param-value>
 	</context-param>
 
-	<listener>
-		<listener-class>com.feifei.order.listener.StartupListener</listener-class>
-	</listener>
 	<filter>
 		<filter-name>characterEncodingFilter</filter-name>
 		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>

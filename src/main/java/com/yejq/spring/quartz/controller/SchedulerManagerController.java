@@ -178,24 +178,26 @@ public class SchedulerManagerController {
 				List<TriggerModel> triggerModels = new ArrayList<TriggerModel>();
 				for (int j = 0; j < triggersInGroup.length; j++) {
 					TriggerModel tmodel = new TriggerModel();
-					CronTrigger trigger = (CronTrigger) scheduler.getTrigger(triggersInGroup[j], triggerGroups[i]);
-					// 添加描述，去掉原来在trigger中的描述的 pasused_flag
-					String des = trigger.getDescription();
-					if (des != null) {
-						while (des.endsWith(SchedulerUtil.PAUSED_FLAG)) {
-							des = des.substring(0, des.indexOf(SchedulerUtil.PAUSED_FLAG));
+					Trigger trigger = scheduler.getTrigger(triggersInGroup[j], triggerGroups[i]);
+					if (trigger instanceof CronTrigger) {
+						// 添加描述，去掉原来在trigger中的描述的 pasused_flag
+						String des = trigger.getDescription();
+						if (des != null) {
+							while (des.endsWith(SchedulerUtil.PAUSED_FLAG)) {
+								des = des.substring(0, des.indexOf(SchedulerUtil.PAUSED_FLAG));
+							}
 						}
+						trigger.setDescription(des);
+						tmodel.setTrigger(trigger);
+						int status = scheduler.getTriggerState(triggersInGroup[j], triggerGroups[i]);
+						// 如果发现执行job有错误,而且不是暂停状态,则设置为ERROR状态显示.
+						if (SchedulerUtil.hasErrorTrigger(triggersInGroup[j]) && status != Trigger.STATE_PAUSED) {
+							tmodel.setStatus(Trigger.STATE_ERROR);
+						} else {
+							tmodel.setStatus(status);
+						}
+						triggerModels.add(tmodel);
 					}
-					trigger.setDescription(des);
-					tmodel.setTrigger(trigger);
-					int status = scheduler.getTriggerState(triggersInGroup[j], triggerGroups[i]);
-					// 如果发现执行job有错误,而且不是暂停状态,则设置为ERROR状态显示.
-					if (SchedulerUtil.hasErrorTrigger(triggersInGroup[j]) && status != Trigger.STATE_PAUSED) {
-						tmodel.setStatus(Trigger.STATE_ERROR);
-					} else {
-						tmodel.setStatus(status);
-					}
-					triggerModels.add(tmodel);
 				}
 				tiggerGroup.setTriggerModels(triggerModels);
 				tiggerGroups.add(tiggerGroup);
